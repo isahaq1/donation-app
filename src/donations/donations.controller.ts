@@ -8,8 +8,11 @@ import {
   ForbiddenException,
   Put,
   Delete,
+  UseGuards,
 } from "@nestjs/common";
 import { DonationsService } from "./donations.service";
+import { Roles } from "../common/decorators/roles.decorator"; // Import the Roles decorator
+import { RolesGuard } from "../common/guards/roles.guard";
 import {
   CreateDonationDTO,
   UpdateDonationDTO,
@@ -21,11 +24,15 @@ export class DonationsController {
   constructor(private readonly donationsService: DonationsService) {}
 
   @Post()
+  // @Roles("admin", "user") // Only users with 'admin' role can access this endpoint
+  // @UseGuards(RolesGuard)
   create(@Body() createDonationDto: CreateDonationDTO): Promise<Donation> {
     return this.donationsService.create(createDonationDto);
   }
 
   @Get()
+  // @Roles("admin", "user") // Only users with 'admin' role can access this endpoint
+  // @UseGuards(RolesGuard)
   findAll(): Promise<Donation[]> {
     return this.donationsService.findAll();
   }
@@ -60,11 +67,15 @@ export class DonationsController {
   }
 
   @Get("summary/report")
+  @Roles("admin") // Only users with 'admin' role can access this endpoint
+  @UseGuards(RolesGuard)
   async getDonationSummary() {
     return this.donationsService.getDonationSummary();
   }
 
   @Get("summary/monthly")
+  @Roles("admin") // Only users with 'admin' role can access this endpoint
+  @UseGuards(RolesGuard)
   async getMonthlyDonationSummary() {
     return this.donationsService.getMonthlyDonationSummary();
   }

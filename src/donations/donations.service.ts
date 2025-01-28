@@ -31,7 +31,18 @@ export class DonationsService {
   }
 
   async findAll(): Promise<Donation[]> {
-    return this.donationsRepository.find({ where: { softDeleted: false } });
+    return this.donationsRepository.find({
+      relations: ["user"],
+      select: {
+        user: {
+          id: true,
+          username: true,
+          email: true,
+          // Exclude sensitive fields like password
+        },
+      },
+      where: { softDeleted: false },
+    });
   }
 
   async softDelete(id: number): Promise<void> {

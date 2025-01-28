@@ -1,7 +1,13 @@
-import { Entity, Column, PrimaryGeneratedColumn, ManyToOne } from "typeorm";
+import {
+  Entity,
+  Column,
+  PrimaryGeneratedColumn,
+  ManyToOne,
+  JoinColumn,
+} from "typeorm";
 import { User } from "../users/user.entity";
 
-@Entity()
+@Entity("donations")
 export class Donation {
   @PrimaryGeneratedColumn()
   id: number;
@@ -13,7 +19,11 @@ export class Donation {
   description: string;
 
   @ManyToOne(() => User, (user) => user.donations)
+  @JoinColumn({ name: "userId" })
   user: User;
+
+  @Column()
+  userId: number;
 
   @Column({ default: () => "CURRENT_TIMESTAMP" })
   createdAt: Date;
@@ -28,6 +38,7 @@ export class Donation {
     id: number,
     amount: number,
     description: string,
+    userId: number,
     user: User,
     createdAt: Date,
     delatedAt: Date,
@@ -37,6 +48,7 @@ export class Donation {
     this.amount = amount;
     this.description = description;
     this.user = user;
+    this.userId = userId;
     this.createdAt = createdAt;
     this.delatedAt = delatedAt;
     this.softDeleted = softDeleted;
