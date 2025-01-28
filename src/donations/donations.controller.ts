@@ -9,6 +9,7 @@ import {
   Put,
   Delete,
   UseGuards,
+  Request as Req,
 } from "@nestjs/common";
 import { DonationsService } from "./donations.service";
 import { Roles } from "../common/decorators/roles.decorator"; // Import the Roles decorator
@@ -18,23 +19,27 @@ import {
   UpdateDonationDTO,
 } from "./dto/create-donation.dto";
 import { Donation } from "./donation.entity";
+import { JwtAuthGuard } from "@/common/guards/jwt-auth.guard";
 
 @Controller("donations")
 export class DonationsController {
   constructor(private readonly donationsService: DonationsService) {}
 
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles("admin", "user")
   @Post()
-  // @Roles("admin", "user") // Only users with 'admin' role can access this endpoint
-  // @UseGuards(RolesGuard)
   create(@Body() createDonationDto: CreateDonationDTO): Promise<Donation> {
     return this.donationsService.create(createDonationDto);
   }
 
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles("admin", "user")
   @Get()
-  // @Roles("admin", "user") // Only users with 'admin' role can access this endpoint
-  // @UseGuards(RolesGuard)
-  findAll(): Promise<Donation[]> {
-    return this.donationsService.findAll();
+  // findAll(): Promise<Donation[]> {
+  //   return this.donationsService.findAll();
+  // }
+  async findAll(@Req() req: Request & { user: any }) {
+    return this.donationsService.findAll(req.user);
   }
 
   @Put(":id")
@@ -66,16 +71,16 @@ export class DonationsController {
     return this.donationsService.softDelete(id);
   }
 
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles("admin")
   @Get("summary/report")
-  @Roles("admin") // Only users with 'admin' role can access this endpoint
-  @UseGuards(RolesGuard)
   async getDonationSummary() {
     return this.donationsService.getDonationSummary();
   }
 
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles("admin")
   @Get("summary/monthly")
-  @Roles("admin") // Only users with 'admin' role can access this endpoint
-  @UseGuards(RolesGuard)
   async getMonthlyDonationSummary() {
     return this.donationsService.getMonthlyDonationSummary();
   }

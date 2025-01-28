@@ -30,7 +30,23 @@ export class DonationsService {
     return this.findOne(id);
   }
 
-  async findAll(): Promise<Donation[]> {
+  async findAll(user: any): Promise<Donation[]> {
+    // If user is admin, return all donations
+    if (user.role === "admin") {
+      return this.donationsRepository.find({
+        relations: ["user"],
+        select: {
+          user: {
+            id: true,
+            username: true,
+            email: true,
+          },
+        },
+        where: { softDeleted: false },
+      });
+    }
+
+    // If user is not admin, return only their donations
     return this.donationsRepository.find({
       relations: ["user"],
       select: {
@@ -38,10 +54,12 @@ export class DonationsService {
           id: true,
           username: true,
           email: true,
-          // Exclude sensitive fields like password
         },
       },
-      where: { softDeleted: false },
+      where: {
+        softDeleted: false,
+        userId: user.id, // Filter by the authenticated user's ID
+      },
     });
   }
 
@@ -91,6 +109,22 @@ export class DonationsService {
       1
     );
 
+    // Array of month names
+    const monthNames = [
+      "January",
+      "February",
+      "March",
+      "April",
+      "May",
+      "June",
+      "July",
+      "August",
+      "September",
+      "October",
+      "November",
+      "December",
+    ];
+
     // Generate the last 12 months
     const months = [];
     for (let i = 0; i < 12; i++) {
@@ -99,7 +133,11 @@ export class DonationsService {
         last12Months.getMonth() + i,
         1
       );
-      months.push({ month: date.getMonth() + 1, year: date.getFullYear() }); // Months are 0-based, so add 1
+      months.push({
+        month: date.getMonth() + 1,
+        monthName: monthNames[date.getMonth()],
+        year: date.getFullYear(),
+      });
     }
 
     console.log("Query start date:", last12Months.toISOString().split("T")[0]);
@@ -131,6 +169,7 @@ export class DonationsService {
       const key = `${item.year}-${item.month}`;
       map[key] = {
         month: Number(item.month),
+        monthName: monthNames[Number(item.month) - 1], // Convert month number to name
         year: Number(item.year),
         totalAmount: Number(item.totalAmount) || 0,
         count: Number(item.count) || 0,
@@ -139,9 +178,17 @@ export class DonationsService {
     }, {});
 
     // Merge donations data with the full list of months
-    const result = months.map(({ month, year }) => {
+    const result = months.map(({ month, monthName, year }) => {
       const key = `${year}-${month}`;
-      return donationsMap[key] || { month, year, totalAmount: 0, count: 0 };
+      return (
+        donationsMap[key] || {
+          month,
+          monthName,
+          year,
+          totalAmount: 0,
+          count: 0,
+        }
+      );
     });
 
     return result;

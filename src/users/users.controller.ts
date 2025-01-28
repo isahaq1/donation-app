@@ -13,21 +13,22 @@ import {
 import { Roles } from "../common/decorators/roles.decorator"; // Import the Roles decorator
 import { RolesGuard } from "../common/guards/roles.guard";
 import { User } from "./user.entity";
+import { JwtAuthGuard } from "../common/guards/jwt-auth.guard";
 
 @Controller("users")
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles("admin")
   @Post()
-  @Roles("admin") // Only users with 'admin' role can access this endpoint
-  @UseGuards(RolesGuard)
   async create(createUserDto: CreateUserDto) {
     return this.usersService.create(createUserDto);
   }
 
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles("admin")
   @Get()
-  @Roles("admin", "user") // Only users with 'admin' role can access this endpoint
-  @UseGuards(RolesGuard)
   async findAll() {
     return this.usersService.findAll();
   }

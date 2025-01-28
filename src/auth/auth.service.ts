@@ -1,4 +1,4 @@
-import { Injectable } from "@nestjs/common";
+import { Injectable, UnauthorizedException } from "@nestjs/common";
 import { UsersService } from "../users/users.service";
 import { JwtService } from "@nestjs/jwt";
 import { CreateUserDto } from "../users/dto/create-user.dto";
@@ -35,19 +35,23 @@ export class AuthService {
 
   async validateUserById(userId: number): Promise<any> {
     const user = await this.usersService.findById(userId);
-    if (user) {
-      const { password, ...result } = user;
-      return result;
+    if (!user) {
+      throw new UnauthorizedException("User not found");
     }
-    return null;
+    const { password, ...result } = user;
+    return result;
   }
 
   async login(user: any) {
+    if (!user.id) {
+      throw new UnauthorizedException("Invalid user data");
+    }
+
     const payload = {
       username: user.username,
+      sub: user.id,
       email: user.email,
       role: user.role,
-      sub: user.userId,
     };
 
     return {
@@ -60,7 +64,20 @@ export class AuthService {
       },
       status: true,
       message: "Login Success",
-      isAdmin: user.role === "admin" ? true : false,
+      isAdmin: user.role === "admin",
     };
+  }
+
+  async verifyToken(token: string) {
+    try {
+      const payload = await this.jwtService.verify(token);
+      const user = await this.validateUserById(payload.sub);
+      if (!user) {
+        throw new UnauthorizedException("User no longer exists");
+      }
+      return user;
+    } catch (error) {
+      throw new UnauthorizedException("Invalid token");
+    }
   }
 }
