@@ -71,4 +71,68 @@ export class DonationsService {
       deletedCount: deletedDonations.length,
     };
   }
+
+  async getMonthlyDonationSummary() {
+    const today = new Date();
+    const last12Months = new Date(
+      today.getFullYear(),
+      today.getMonth() - 11,
+      1
+    );
+
+    // Generate the last 12 months
+    const months = [];
+    for (let i = 0; i < 12; i++) {
+      const date = new Date(
+        last12Months.getFullYear(),
+        last12Months.getMonth() + i,
+        1
+      );
+      months.push({ month: date.getMonth() + 1, year: date.getFullYear() }); // Months are 0-based, so add 1
+    }
+
+    console.log("Query start date:", last12Months.toISOString().split("T")[0]);
+
+    // Raw SQL query for donations
+    const donations = await this.donationsRepository.query(
+      `
+    SELECT 
+      EXTRACT(MONTH FROM "donation"."createdAt") as month,
+      EXTRACT(YEAR FROM "donation"."createdAt") as year,
+      SUM(COALESCE("donation"."amount", 0)) as "totalAmount",
+      COUNT(*) as "count"
+    FROM 
+      "donation" "donation"
+    WHERE 
+      "donation"."createdAt" >= $1
+      AND "donation"."softDeleted" = $2
+    GROUP BY 
+      EXTRACT(MONTH FROM "donation"."createdAt"), 
+      EXTRACT(YEAR FROM "donation"."createdAt")
+    ORDER BY 
+      year DESC, month DESC
+    `,
+      [last12Months.toISOString().split("T")[0], false]
+    );
+
+    // Convert query results into a lookup object for easy merging
+    const donationsMap = donations.reduce((map: any, item: any) => {
+      const key = `${item.year}-${item.month}`;
+      map[key] = {
+        month: Number(item.month),
+        year: Number(item.year),
+        totalAmount: Number(item.totalAmount) || 0,
+        count: Number(item.count) || 0,
+      };
+      return map;
+    }, {});
+
+    // Merge donations data with the full list of months
+    const result = months.map(({ month, year }) => {
+      const key = `${year}-${month}`;
+      return donationsMap[key] || { month, year, totalAmount: 0, count: 0 };
+    });
+
+    return result;
+  }
 }

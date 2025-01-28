@@ -63,4 +63,9 @@ export class DonationsController {
   async getDonationSummary() {
     return this.donationsService.getDonationSummary();
   }
+
+  @Get("summary/monthly")
+  async getMonthlyDonationSummary() {
+    return this.donationsService.getMonthlyDonationSummary();
+  }
 }
