@@ -74,8 +74,9 @@ nestjs-app
    ```
 
 3. Set up PostgreSQL database and update the configuration in `src/app.module.ts`.
+4. In `src/app.module.ts` add your postgresql information for connect with database.
 
-4. Run the application:
+5. Run the application:
    ```
    npm run start
    ```
