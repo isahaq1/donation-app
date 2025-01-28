@@ -51,7 +51,16 @@ export class AuthService {
     };
 
     return {
-      access_token: this.jwtService.sign(payload),
+      token: this.jwtService.sign(payload),
+      data: {
+        username: user.username,
+        email: user.email,
+        role: user.role,
+        id: user.id,
+      },
+      status: true,
+      message: "Login Success",
+      isAdmin: user.role === "admin" ? true : false,
     };
   }
 }

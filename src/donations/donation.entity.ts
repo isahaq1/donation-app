@@ -18,17 +18,27 @@ export class Donation {
   @Column({ default: () => "CURRENT_TIMESTAMP" })
   createdAt: Date;
 
+  @Column({ default: false })
+  softDeleted: boolean;
+
+  @Column({ nullable: true, type: "timestamp" })
+  delatedAt: Date;
+
   constructor(
     id: number,
     amount: number,
     description: string,
     user: User,
-    createdAt: Date
+    createdAt: Date,
+    delatedAt: Date,
+    softDeleted: boolean
   ) {
     this.id = id;
     this.amount = amount;
     this.description = description;
     this.user = user;
     this.createdAt = createdAt;
+    this.delatedAt = delatedAt;
+    this.softDeleted = softDeleted;
   }
 }

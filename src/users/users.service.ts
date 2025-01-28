@@ -30,8 +30,8 @@ export class UsersService {
     return user ?? undefined;
   }
 
-  async update(id: number, updateUserDto: UpdateUserDto): Promise<User | null> {
-    await this.usersRepository.update(id, updateUserDto);
+  async update(id: number, updateuserDto: UpdateUserDto): Promise<User | null> {
+    await this.usersRepository.update(id, updateuserDto);
     return this.findOne(id);
   }
 
