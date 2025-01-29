@@ -7,6 +7,11 @@ import {
   UpdateDonationDTO,
 } from "./dto/create-donation.dto";
 
+interface DateRangeDto {
+  startDate: Date;
+  endDate: Date;
+}
+
 @Injectable()
 export class DonationsService {
   constructor(
@@ -192,5 +197,120 @@ export class DonationsService {
     });
 
     return result;
+  }
+
+  async getDonationReportByDateRange(dateRange: DateRangeDto) {
+    try {
+      const { startDate, endDate } = dateRange;
+
+      // Get all dates between start and end date
+      const getDatesInRange = (start: Date, end: Date) => {
+        const dates = [];
+        const current = new Date(start);
+        const last = new Date(end);
+
+        while (current <= last) {
+          dates.push(new Date(current));
+          current.setDate(current.getDate() + 1);
+        }
+        return dates;
+      };
+
+      const allDates = getDatesInRange(new Date(startDate), new Date(endDate));
+
+      // Get donations within date range
+      const donations = await this.donationsRepository
+        .createQueryBuilder("donation")
+        .select([
+          "to_char(donation.createdAt, 'YYYY-MM-DD') as date",
+          "COALESCE(SUM(donation.amount), 0) as total_amount",
+          "COUNT(*) as count",
+          "donation.softDeleted",
+        ])
+        .where("donation.createdAt >= :startDate", {
+          startDate: new Date(startDate).toISOString().split("T")[0],
+        })
+        .andWhere("donation.createdAt <= :endDate", {
+          endDate: new Date(endDate).toISOString().split("T")[0] + " 23:59:59",
+        })
+        .groupBy(
+          "to_char(donation.createdAt, 'YYYY-MM-DD'), donation.softDeleted"
+        )
+        .orderBy("date", "DESC")
+        .getRawMany();
+
+      // Create a map of donations by date
+      const donationsByDate = new Map();
+
+      // Initialize all dates with zero values
+      allDates.forEach((date) => {
+        const dateStr = date.toISOString().split("T")[0];
+        donationsByDate.set(dateStr, {
+          date: dateStr,
+          activeAmount: 0,
+          activeCount: 0,
+          deletedAmount: 0,
+          deletedCount: 0,
+          totalAmount: 0,
+          totalCount: 0,
+        });
+      });
+
+      // Fill in actual donation data
+      donations.forEach((item) => {
+        const dateStr = item.date;
+        const dayData = donationsByDate.get(dateStr);
+
+        if (dayData) {
+          const amount = Number(item.total_amount) || 0;
+          const count = Number(item.count) || 0;
+
+          if (item.donation_softdeleted) {
+            dayData.deletedAmount += amount;
+            dayData.deletedCount += count;
+          } else {
+            dayData.activeAmount += amount;
+            dayData.activeCount += count;
+          }
+
+          dayData.totalAmount = dayData.activeAmount + dayData.deletedAmount;
+          dayData.totalCount = dayData.activeCount + dayData.deletedCount;
+        }
+      });
+
+      // Convert map to array and sort by date
+      const dailyReports = Array.from(donationsByDate.values()).sort(
+        (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+      );
+
+      // Calculate overall totals
+      const summary = {
+        startDate,
+        endDate,
+        totalAmount: 0,
+        totalCount: 0,
+        activeAmount: 0,
+        activeCount: 0,
+        deletedAmount: 0,
+        deletedCount: 0,
+        dailyReports,
+      };
+
+      // Sum up totals from daily reports
+      dailyReports.forEach((day) => {
+        summary.activeAmount += day.activeAmount;
+        summary.activeCount += day.activeCount;
+        summary.deletedAmount += day.deletedAmount;
+        summary.deletedCount += day.deletedCount;
+      });
+
+      summary.totalAmount = summary.activeAmount + summary.deletedAmount;
+      summary.totalCount = summary.activeCount + summary.deletedCount;
+
+      return summary;
+    } catch (error) {
+      console.error("Error in getDonationReportByDateRange:", error);
+      throw error;
+    }
   }
 }

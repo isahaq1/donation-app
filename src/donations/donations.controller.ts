@@ -84,4 +84,13 @@ export class DonationsController {
   async getMonthlyDonationSummary() {
     return this.donationsService.getMonthlyDonationSummary();
   }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles("admin")
+  @Post("report/daterange")
+  async getDonationReportByDateRange(
+    @Body() dateRange: { startDate: Date; endDate: Date }
+  ) {
+    return this.donationsService.getDonationReportByDateRange(dateRange);
+  }
 }
